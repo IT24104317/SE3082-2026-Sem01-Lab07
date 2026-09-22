@@ -1,0 +1,26 @@
+Exercise 7 - Collective communication comparison
+
+| Program | Main collective(s) | Array storage | Manual summation at root? | Final result |
+| --- | --- | --- | --- | --- |
+| sum_bcast.c | MPI_Bcast, MPI_Send, MPI_Recv | Full array on every process | Yes | Root only |
+| sum_scatter.c | MPI_Scatter, MPI_Send, MPI_Recv | Full array on root; chunk on every process | Yes | Root only |
+| sum_gather.c | MPI_Scatter, MPI_Gather | Full array on root; chunk on every process | Yes | Root only |
+| sum_reduce.c | MPI_Scatter, MPI_Reduce | Full array on root; chunk on every process | No | Root only |
+| sum_allreduce.c | MPI_Scatter, MPI_Allreduce | Full array on root; chunk on every process | No | Every process |
+| sum_scan.c | MPI_Scatter, MPI_Scan | Full array on root; chunk on every process | No | Different prefix total on every rank; final total on last rank |
+
+Timing results (complete these after running):
+
+| Program | 2 processes | 4 processes | 8 processes |
+| --- | ---: | ---: | ---: |
+| sum_bcast | 0.002674 sec | 0.005507 sec | 0.005855 sec |
+| sum_scatter | 0.001699 sec | 0.001895 sec | 0.000936 sec |
+| sum_gather | 0.001418 sec | 0.001047 sec | 0.003952 sec |
+| sum_reduce | 0.002761 sec | 0.002522 sec | 0.001448 sec |
+| sum_allreduce | 0.001558 sec | 0.003906 sec | 0.002644 sec |
+| sum_scan | 0.001406 sec | 0.001559 sec | 0.000805 sec |
+
+Explanation:
+MPI_Bcast is least memory-efficient because every process stores the full input array. MPI_Scatter sends only the required chunk to each process, so it reduces memory use and communication volume. MPI_Gather simplifies the collection step, but root still performs a serial summation. MPI_Reduce removes that serial summation by performing a tree-based reduction. MPI_Allreduce is appropriate when every rank requires the final total. The fastest program depends on the MPI implementation and machine, but Scatter plus Reduce is usually a strong choice when only root needs the final answer because it avoids broadcasting full data and avoids gathering all partial sums at root.
+
+MPI_Scan should be selected instead of MPI_Allreduce when each process needs a rank-dependent cumulative total rather than the same global total. For example, when writing variable-length records into a shared output array, each rank can use sum_before_me as its unique starting offset. MPI_Allreduce would give every rank the same global total and cannot provide that offset.
